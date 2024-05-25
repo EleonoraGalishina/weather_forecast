@@ -1,7 +1,9 @@
 package com.example.weather;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,14 +19,15 @@ public class SignInFragment extends Fragment {
     private EditText loginField;
     private EditText passwordField;
     private Button btnLogin;
-    private DatabaseHelper db;
+    private UserDao userDao;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_sign_in, container, false);
 
-        db = new DatabaseHelper(getContext());
+        AppDatabase db = AppDatabase.getDatabase(getContext());
+        userDao = db.userDao();
 
         loginField = view.findViewById(R.id.loginField);
         passwordField = view.findViewById(R.id.passwordField);
@@ -37,17 +40,38 @@ public class SignInFragment extends Fragment {
                 String password = passwordField.getText().toString().trim();
 
                 if (login.isEmpty() || password.isEmpty()) {
-                    Toast.makeText(getContext(), "Пожалуйста, заполните все поля!", Toast.LENGTH_SHORT).show();
-                } else if (db.checkUser(login, password)) {
-                    Intent intent = new Intent(getContext(), WelcomeActivity.class);
-                    intent.putExtra("LOGIN", login);
-                    startActivity(intent);
+                    Toast.makeText(getContext(), "Пожалуйста заполните все поля", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getContext(), "Ошибка входа", Toast.LENGTH_SHORT).show();
+                    new SignInTask().execute(login, password);
                 }
             }
         });
 
         return view;
+    }
+
+    private class SignInTask extends AsyncTask<String, Void, User> {
+        @Override
+        protected User doInBackground(String... params) {
+            try {
+                String login = params[0];
+                String password = params[1];
+                return userDao.getUser(login, password);
+            } catch (Exception e) {
+                Log.e("SignInFragment", "Ошибка входа пользователя", e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(User user) {
+            if (user != null) {
+                Intent intent = new Intent(getContext(), WelcomeActivity.class);
+                intent.putExtra("LOGIN", user.getLogin());
+                startActivity(intent);
+            } else {
+                Toast.makeText(getContext(), "Ошибка входа", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

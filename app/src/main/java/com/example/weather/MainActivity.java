@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
                         tab.setText("Войти");
                         break;
                     case 1:
-                        tab.setText("Зарегистрироваться ");
+                        tab.setText("Зарегистрироваться");
                         break;
                 }
             }
